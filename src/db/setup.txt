@@ -1,0 +1,76 @@
+
+
+create type spaceShape as ENUM('triangle','square','hexagon')
+
+drop type shape
+
+
+drop table boards;
+
+create table boards(id integer primary key, name text, code text, shape text, size numeric, spaceShape spaceShape);
+insert into boards("id","name","code","shape","size","spaceshape")
+values
+(1,'chess board','chess','square',8,'square');
+
+
+
+drop table movement
+create table movement (id integer primary key, name text, possibleMoves text[], attackMoves text[], attackSameAsMove boolean, canJump boolean);
+
+insert into movement("id","name","possiblemoves","attackmoves","attacksameasmove","canjump") 
+values 
+(1, 'king','{"fl","f","fr","l","r","bl","b","br"}', '{}', true, false),
+(2, 'queen','{"fl+", "f+", "fr+", "l+", "r+", "bl+", "b+", "br+"}', '{}', true, false),
+(3, 'rook','{"f+", "b+", "l+", "r+"}', '{}', true, false),
+(4, 'bishop','{"fl+", "fr+", "bl+", "br+"}', '{}', true, false),
+(5, 'knight','{"ffl","ffr","fll","frr","bll","brr","bbl","bbr"}', '{}', true, true),
+(6, 'pawn','{"f"}', '{"fl", "fr"}', false, false),
+(7, 'first move pawn','{"f", "ff"}', '{"fl", "fr"}', false, false),
+(8, 'super pawn', '{"fl","f","ff","fr"}', '{}', true, false);
+
+
+
+
+drop table promotion;
+
+create table promotion (id integer primary key, promoted_to integer, condition text, condition_code text);
+insert into promotion("id","promoted_to","condition","condition_code") values (1, 2, 'last row','lr'), (2, 6, 'not first move','nfm');
+
+alter table promotion add constraint fk_promoted_to foreign key ("promoted_to") references pieces(id);
+
+
+
+create type piececode as ENUM('k','q','r','b','n','p','fmp','sp');
+
+drop table pieces;
+
+create table pieces (id integer primary key, name text, code piececode, img text, movement integer references movement(id), promotion integer references promotion(id), strength numeric);
+insert into pieces("id","name","code","img","movement","promotion","strength")
+values
+(1,'king', 'k', 'king',1,null,0),
+(2,'queen', 'q', 'queen',2,null,0),
+(3,'rook', 'r', 'rook',3,null,0),
+(4,'bishop', 'b', 'bishop',4,null,0),
+(5,'knight', 'n', 'knight',5,null,0),
+(6,'pawn', 'p', 'pawn',6,1,0),
+(7,'first move pawn', 'fmp', 'pawn',7,2,0),
+(8,'super pawn', 'sp', 'pawn',8,1,0);
+
+alter table pieces
+alter column code set data type piececode using code::piececode;
+
+
+drop table gametypes;
+
+create table gametypes (id integer primary key, name text, code text, board integer references boards(id), piececodes piececode[], startingpiecepositions text[], wincondition text);
+insert into gametypes ("id","name","code","board","piececodes","startingpiecepositions","wincondition")
+values
+(1, 'knight and king mayhem','kn',1,'{"k","n"}','{"An-c2","An-d2","An-e2","An-f2","Ak-d1","Ak-e1","Bn-c7","Bn-d7","Bn-e7","Bn-f7","Bk-d8","Bk-e8"}','annihilation'),
+(2, 'king queen rook bishop fun','kqrb',1,'{"k","q","r","b"}','{"Ab-c2","Ar-d2","Aq-e2","Ab-f2","Ak-d1","Ak-e1","Bb-c7","Br-d7","Bq-e7","Bb-f7","Bk-d8","Bk-e8"}','annihilation'),
+(3, 'chess','chess',1,'{"k","q","r","n","b","p","fmp"}','{"Ar-a1","An-b1","Ab-c1","Aq-d1","Ak-e1","Ab-f1","An-g1","Ar-h1","Afmp-a2","Afmp-b2","Afmp-c2","Afmp-d2","Afmp-e2","Afmp-f2",
+"Afmp-g2","Afmp-h2","Bfmp-a7","Bfmp-b7","Bfmp-c7","Bfmp-d7","Bfmp-e7","Bfmp-f7","Bfmp-g7","Bfmp-h7","Br-a8","Bn-b8","Bb-c8","Bq-d8","Bk-e8","Bb-f8","Bn-g8","Br-h8"}','k');
+
+
+
+
+

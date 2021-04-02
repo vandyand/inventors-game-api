@@ -11,15 +11,18 @@ const Router = require("express-promise-router");
 const db = require("../db");
 const router = new Router();
 module.exports = router;
-router.get("/", (req, res) => __awaiter(this, void 0, void 0, function* () {
-    try {
-        const { rows } = yield db.query("SELECT * FROM pieces");
-        res.send(rows);
+router.get("/", (req, res) => {
+    if (req.query.ids) {
+        db.query(`SELECT * FROM pieces WHERE id in (${req.query.ids})`)
+            .then((result) => res.send(result.rows))
+            .catch((err) => console.log(err.message));
     }
-    catch (e) {
-        console.log(e);
+    else {
+        db.query(`SELECT * FROM pieces`)
+            .then((result) => res.send(result.rows))
+            .catch((err) => console.log(err.message));
     }
-}));
+});
 router.get("/:id", (req, res) => __awaiter(this, void 0, void 0, function* () {
     try {
         const { rows } = yield db.query(`SELECT * FROM pieces where id = ${req.params.id}`);

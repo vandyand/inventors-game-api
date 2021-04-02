@@ -11,6 +11,15 @@ router.get("/", (req, res) => {
     db.query(`SELECT * FROM pieces WHERE id in (${req.query.ids})`)
       .then((result) => res.send(result.rows))
       .catch((err) => console.log(err.message));
+  } else if (req.query.codes) {
+    db.query(
+      `SELECT * FROM pieces WHERE code in (${req.query.codes
+        .split(",")
+        .map((x) => `'${x}'`)
+        .join(",")})`
+    )
+      .then((result) => res.send(result.rows))
+      .catch((err) => console.log(err.message));
   } else {
     db.query(`SELECT * FROM pieces`)
       .then((result) => res.send(result.rows))

@@ -13,8 +13,8 @@ const router = new Router();
 module.exports = router;
 router.get("/", (req, res) => __awaiter(this, void 0, void 0, function* () {
     try {
-        const response = yield db.query("SELECT * FROM boards");
-        res.send(response);
+        const { rows } = yield db.query("SELECT * FROM pieces");
+        res.send(rows);
     }
     catch (e) {
         console.log(e);
@@ -22,11 +22,16 @@ router.get("/", (req, res) => __awaiter(this, void 0, void 0, function* () {
 }));
 router.get("/:id", (req, res) => __awaiter(this, void 0, void 0, function* () {
     try {
-        const { rows } = yield db.query(`SELECT * FROM boards where id = ${req.params.id}`);
-        res.send(rows[0]);
+        const { rows } = yield db.query(`SELECT * FROM pieces where id = ${req.params.id}`);
+        res.send(rows);
     }
     catch (e) {
         console.log(e);
     }
 }));
-//# sourceMappingURL=boards.js.map
+router.get("/code/:code", (req, res) => {
+    db.query(`SELECT * FROM pieces where code = '${req.params.code}'`)
+        .then((result) => res.send(result.rows))
+        .catch((err) => console.log(err.message));
+});
+//# sourceMappingURL=pieces.js.map

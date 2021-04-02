@@ -13,8 +13,8 @@ const router = new Router();
 module.exports = router;
 router.get("/", (req, res) => __awaiter(this, void 0, void 0, function* () {
     try {
-        const response = yield db.query("SELECT * FROM boards");
-        res.send(response);
+        const { rows } = yield db.query("SELECT * FROM gametypes");
+        res.send(rows);
     }
     catch (e) {
         console.log(e);
@@ -22,11 +22,11 @@ router.get("/", (req, res) => __awaiter(this, void 0, void 0, function* () {
 }));
 router.get("/:id", (req, res) => __awaiter(this, void 0, void 0, function* () {
     try {
-        const { rows } = yield db.query(`SELECT * FROM boards where id = ${req.params.id}`);
-        res.send(rows[0]);
+        const { rows } = yield db.query(`SELECT * FROM gametypes where id = ${req.params.id}`);
+        res.send(rows);
     }
     catch (e) {
         console.log(e);
     }
 }));
-//# sourceMappingURL=boards.js.map
+//# sourceMappingURL=gameTypes.js.map

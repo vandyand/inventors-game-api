@@ -1,50 +1,36 @@
 
 
-create type spaceShape as ENUM('triangle','square','hexagon')
-
-drop type shape
 
 
-drop table boards;
-
-create table boards(id integer primary key, name text, code text, shape text, size numeric, spaceShape spaceShape);
-insert into boards("id","name","code","shape","size","spaceshape")
+create table boards(id bigserial primary key, name text, code text, "gridType" text, "boardShape" text, size numeric[]);
+insert into boards("id","name","code","gridType","boardShape","size")
 values
-(1,'chess board','chess','square',8,'square');
+(1,'chess board','chess','squares','square','{8}');
 
 
 
-drop table movement
-create table movement (id integer primary key, name text, possibleMoves text[], attackMoves text[], attackSameAsMove boolean, canJump boolean);
-
-insert into movement("id","name","possiblemoves","attackmoves","attacksameasmove","canjump") 
+create table movement (id bigserial primary key, name text, moves text[], "attackSameAsMove" boolean, "attackMoves" text[], "canJump" boolean);
+insert into movement("id","name","moves","attackSameAsMove","attackMoves","canJump") 
 values 
-(1, 'king','{"fl","f","fr","l","r","bl","b","br"}', '{}', true, false),
-(2, 'queen','{"fl+", "f+", "fr+", "l+", "r+", "bl+", "b+", "br+"}', '{}', true, false),
-(3, 'rook','{"f+", "b+", "l+", "r+"}', '{}', true, false),
-(4, 'bishop','{"fl+", "fr+", "bl+", "br+"}', '{}', true, false),
-(5, 'knight','{"ffl","ffr","fll","frr","bll","brr","bbl","bbr"}', '{}', true, true),
-(6, 'pawn','{"f"}', '{"fl", "fr"}', false, false),
-(7, 'first move pawn','{"f", "ff"}', '{"fl", "fr"}', false, false),
-(8, 'super pawn', '{"fl","f","ff","fr"}', '{}', true, false);
+(1,'king','{"fl","f","fr","l","r","bl","b","br"}', true,'{}', false),
+(2,'queen','{"fl+","f+","fr+","l+","r+","bl+","b+","br+"}', true,'{}', false),
+(3,'rook','{"f+","l+","r+","b+"}',true,'{}',false),
+(4,'bishop','{"fl+", "fr+", "bl+", "br+"}',true,'{}',false),
+(5,'knight','{"ffl","ffr","fll","frr","bll","brr","bbl","bbr"}', true, '{}',true),
+(6,'pawn','{"f"}', false, '{"fl", "fr"}',false),
+(7,'first move pawn','{"f", "ff"}', false,'{"fl", "fr"}', false),
+(8,'super pawn','{"fl","f","ff","fr"}', true, '{}', false);
 
 
 
 
-drop table promotion;
-
-create table promotion (id integer primary key, promoted_to integer, condition text, condition_code text);
-insert into promotion("id","promoted_to","condition","condition_code") values (1, 2, 'last row','lr'), (2, 6, 'not first move','nfm');
-
-alter table promotion add constraint fk_promoted_to foreign key ("promoted_to") references pieces(id);
+create table promotion (id bigserial primary key, "promotedTo" integer, condition text, "conditionCode" text);
+insert into promotion("id","promotedTo","condition","conditionCode") values (1, 2, 'last row','lr'), (2, 6, 'not first move','nfm');
 
 
 
-create type piececode as ENUM('k','q','r','b','n','p','fmp','sp');
 
-drop table pieces;
-
-create table pieces (id integer primary key, name text, code piececode, img text, movement integer references movement(id), promotion integer references promotion(id), strength numeric);
+create table pieces (id bigserial primary key, name text, code text unique, img text, movement integer references movement(id), promotion integer references promotion(id), strength numeric);
 insert into pieces("id","name","code","img","movement","promotion","strength")
 values
 (1,'king', 'k', 'king',1,null,0),
@@ -56,21 +42,78 @@ values
 (7,'first move pawn', 'fmp', 'pawn',7,2,0),
 (8,'super pawn', 'sp', 'pawn',8,1,0);
 
-alter table pieces
-alter column code set data type piececode using code::piececode;
+
+alter table promotion add constraint promotion_pieces_fkey foreign key ("promotedTo") references pieces(id);
+
+--alter table pieces
+--alter column code set data type piececode using code::piececode;
 
 
-drop table gametypes;
-
-create table gametypes (id integer primary key, name text, code text, board integer references boards(id), piececodes piececode[], startingpiecepositions text[], wincondition text);
-insert into gametypes ("id","name","code","board","piececodes","startingpiecepositions","wincondition")
+create table "gameTypes" (id bigserial primary key, name text, code text, board integer references boards(id), "pieceCodes" text[], "winCondition" text);
+insert into "gameTypes" ("name","code","board","pieceCodes","winCondition")
 values
-(1, 'knight and king mayhem','kn',1,'{"k","n"}','{"An-c2","An-d2","An-e2","An-f2","Ak-d1","Ak-e1","Bn-c7","Bn-d7","Bn-e7","Bn-f7","Bk-d8","Bk-e8"}','annihilation'),
-(2, 'king queen rook bishop fun','kqrb',1,'{"k","q","r","b"}','{"Ab-c2","Ar-d2","Aq-e2","Ab-f2","Ak-d1","Ak-e1","Bb-c7","Br-d7","Bq-e7","Bb-f7","Bk-d8","Bk-e8"}','annihilation'),
-(3, 'chess','chess',1,'{"k","q","r","n","b","p","fmp"}','{"Ar-a1","An-b1","Ab-c1","Aq-d1","Ak-e1","Ab-f1","An-g1","Ar-h1","Afmp-a2","Afmp-b2","Afmp-c2","Afmp-d2","Afmp-e2","Afmp-f2",
-"Afmp-g2","Afmp-h2","Bfmp-a7","Bfmp-b7","Bfmp-c7","Bfmp-d7","Bfmp-e7","Bfmp-f7","Bfmp-g7","Bfmp-h7","Br-a8","Bn-b8","Bb-c8","Bq-d8","Bk-e8","Bb-f8","Bn-g8","Br-h8"}','k');
+('chess','chess',1,'{"k","q","r","n","b","p","fmp"}','k'),
+('knight and king mayhem','kn',1,'{"k","n"}','annihilation'),
+('king queen rook bishop fun','kqrb',1,'{"k","q","r","b"}','annihilation');
 
 
 
+create table "boundingBox" (id serial primary key, "boundingBox" integer[]);
+insert into "boundingBox" ("boundingBox")
+values
+('{8,2}'),
+('{4,2}');
 
+
+create table "startingPositions" (id bigserial primary key, "boundingBox" integer references "boundingBox"(id), piece text references pieces(code), spaces integer[]);
+insert into "startingPositions" ("boundingBox","piece","spaces")
+values
+(1, 'p','{1,2,3,4,5,6,7,8}'),
+(1,'r','{9,16}'),
+(1,'n','{10,15}'),
+(1,'b','{11,14}'),
+(1,'q','{12}'),
+(1,'k','{13}'),
+(1,'q','{13}'),
+(1,'k','{12}'),
+(2,'n','{1,2,3,4}'),
+(2,'k','{6,7}'),
+(2,'b','{1,4}'),
+(2,'r','{2}'),
+(2,'q','{3}');
+
+
+create table "startingPositionsMap" (id bigserial primary key, "gameType" integer references "gameTypes"(id), teams integer[], "startingPosition" integer references "startingPositions"(id));
+insert into "startingPositionsMap" ("gameType","teams","startingPosition")
+values
+(1,'{1,2}',1),
+(1,'{1,2}',2),
+(1,'{1,2}',3),
+(1,'{1,2}',4),
+(1,'{1}',5),
+(1,'{1}',6),
+(1,'{2}',7),
+(1,'{2}',8),
+(2,'{1,2}',9),
+(2,'{1,2}',10),
+(3,'{1,2}',10),
+(3,'{1,2}',11),
+(3,'{1,2}',12),
+(3,'{1,2}',13);
+
+
+
+--select * from pieces where id in (1,2);
+--select * from pieces where code in ('q','r');
+
+select * from boards
+
+
+drop table boards cascade;
+drop table "gameTypes" cascade;
+drop table movement cascade;
+drop table pieces cascade;
+drop table promotion cascade;
+drop table "startingPositions" cascade;
+drop table "boundingBox" cascade;
 

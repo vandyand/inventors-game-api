@@ -5,7 +5,7 @@
 create table boards(id bigserial primary key, name text, code text, "gridType" text, "boardShape" text, size numeric[]);
 insert into boards("id","name","code","gridType","boardShape","size")
 values
-(1,'chess board','chess','squares','square','{8}');
+(1,'chess board','chess','squares','square','{8,8}');
 
 
 
@@ -24,14 +24,14 @@ values
 
 
 
-create table promotion (id bigserial primary key, "promotedTo" integer, condition text, "conditionCode" text);
-insert into promotion("id","promotedTo","condition","conditionCode") values (1, 2, 'last row','lr'), (2, 6, 'not first move','nfm');
+create table promotion (id bigserial primary key, "promotedTo" integer, "promotionCondition" text, "promotionConditionCode" text);
+insert into promotion("id","promotedTo","promotionCondition","promotionConditionCode") values (1, 2, 'last row','lr'), (2, 6, 'not first move','nfm');
 
 
 
 
-create table pieces (id bigserial primary key, name text, code text unique, img text, movement integer references movement(id), promotion integer references promotion(id), strength numeric);
-insert into pieces("id","name","code","img","movement","promotion","strength")
+create table pieces (id bigserial primary key, name text, code text unique, img text, "movementId" integer references movement(id), "promotionId" integer references promotion(id), strength numeric);
+insert into pieces("id","name","code","img","movementId","promotionId","strength")
 values
 (1,'king', 'k', 'king',1,null,0),
 (2,'queen', 'q', 'queen',2,null,0),
@@ -49,14 +49,6 @@ alter table promotion add constraint promotion_pieces_fkey foreign key ("promote
 --alter column code set data type piececode using code::piececode;
 
 
-create table "gameTypes" (id bigserial primary key, name text, code text, board integer references boards(id), "pieceCodes" text[], "winCondition" text);
-insert into "gameTypes" ("name","code","board","pieceCodes","winCondition")
-values
-('chess','chess',1,'{"k","q","r","n","b","p","fmp"}','k'),
-('knight and king mayhem','kn',1,'{"k","n"}','annihilation'),
-('king queen rook bishop fun','kqrb',1,'{"k","q","r","b"}','annihilation');
-
-
 
 create table "boundingBox" (id serial primary key, "boundingBox" integer[]);
 insert into "boundingBox" ("boundingBox")
@@ -65,8 +57,13 @@ values
 ('{4,2}');
 
 
-create table "startingPositions" (id bigserial primary key, "boundingBox" integer references "boundingBox"(id), piece text references pieces(code), spaces integer[]);
-insert into "startingPositions" ("boundingBox","piece","spaces")
+create table "startingPositions" (
+	id bigserial primary key, 
+	"boundingBoxId" integer references "boundingBox"(id), 
+	"pieceCode" text references pieces(code), 
+	spaces integer[]
+);
+insert into "startingPositions" ("boundingBoxId","pieceCode","spaces")
 values
 (1, 'p','{1,2,3,4,5,6,7,8}'),
 (1,'r','{9,16}'),
@@ -83,8 +80,13 @@ values
 (2,'q','{3}');
 
 
-create table "startingPositionsMap" (id bigserial primary key, "gameType" integer references "gameTypes"(id), teams integer[], "startingPosition" integer references "startingPositions"(id));
-insert into "startingPositionsMap" ("gameType","teams","startingPosition")
+create table "startingPositionsMap" (
+	id bigserial primary key, 
+	"gameTypeId" integer, 
+	teams integer[], 
+	"startingPositionId" integer references "startingPositions"(id)
+);
+insert into "startingPositionsMap" ("gameTypeId","teams","startingPositionId")
 values
 (1,'{1,2}',1),
 (1,'{1,2}',2),
@@ -102,11 +104,112 @@ values
 (3,'{1,2}',13);
 
 
+create table "gameTypes" (
+	id bigserial primary key, 
+	name text, 
+	code text unique, 
+	"boardId" integer references boards(id), 
+	"startingPiecePositionsMap" integer, 
+	"winCondition" text
+);
+
+insert into "gameTypes" ("name","code","boardId","startingPiecePositionsMap","winCondition")
+values
+('chess','chess',1,1,'k'),
+('knight and king mayhem','kn',1,2,'annihilation'),
+('king queen rook bishop fun','kqrb',1,3,'annihilation');
+
+
+alter table "startingPositionsMap" add constraint "startingPositionsMap_gameTypes_fkey" foreign key ("gameTypeId") references "gameTypes"(id);
+
 
 --select * from pieces where id in (1,2);
 --select * from pieces where code in ('q','r');
 
-select * from boards
+--select * from boards
+
+--select * from pieces inner join movement on (pieces."movementId" = movement.id) left outer join promotion on (pieces."promotionId" = promotion.id)
+
+
+
+select * from "gameTypes" gt 
+inner join "startingPositionsMap" spm on (spm."gameTypeId" = gt.id)
+inner join "startingPositions" sp on (spm."startingPositionId" = sp.id)
+inner join "boundingBox" bb on (sp."boundingBoxId" = bb.id)
+where code = 'chess'
+
+
+SELECT
+      gt.id,
+      gt.name,
+
+      coalesce(
+      (
+        SELECT array_to_json(array_agg(row_to_json(x)))
+        FROM (
+          SELECT *
+          FROM  "startingPositionsMap" spm
+          JOIN "startingPositions" sp on (sp.id = spm."startingPositionId")
+          WHERE spm.id = gt.id
+        ) x
+      ),
+      '[]'
+    )
+      AS "startingPositionsMap"
+    FROM "gameTypes" gt
+
+
+  
+
+select array_to_json(array_agg(gt.name))
+from "gameTypes" gt
+
+
+select jsonb_build_array(gt)
+from "gameTypes" gt
+
+select to_jsonb(gt)
+from "gameTypes" gt
+
+select array_agg(to_jsonb(spm))
+from "startingPositionsMap" spm
+where spm."gameTypeId" = 1
+
+
+
+select "gameTypeId", array_agg("startingPositionId") as "sp"
+from "startingPositionsMap" spm
+where "gameTypeId" = 1
+group by "gameTypeId"
+
+
+select * from "startingPositionsMap" spm;
+select * from "startingPositions" sp;
+
+select * 
+from "startingPositionsMap" spm join "startingPositions" sp on (spm."startingPositionId" = sp.id)
+where "gameTypeId" = 1
+
+
+select x."gameTypeId", array_agg(x."pieceCodeSpaces") as "pieceCodeSpaces", x."boundingBoxId"
+from
+(select "gameTypeId", array[unnest(array_agg(to_jsonB("pieceCode"))),unnest(array_agg(to_jsonb(spaces)))] as "pieceCodeSpaces"
+from "startingPositionsMap" spm join "startingPositions" sp on (spm."startingPositionId" = sp.id)
+--where "gameTypeId" = 1
+group by "gameTypeId") x
+group by x."gameTypeId"
+
+
+select 
+	"gameTypeId", 
+	array[unnest(array_agg(to_jsonB("pieceCode"))),unnest(array_agg(to_jsonb(spaces)))] as "pieceCodeSpaces", 
+	array_agg("boundingBoxId") as "boundingBoxId"
+from "startingPositionsMap" spm join "startingPositions" sp on (spm."startingPositionId" = sp.id)
+where "gameTypeId" = 1
+group by "gameTypeId"
+
+
+
 
 
 drop table boards cascade;
@@ -115,5 +218,43 @@ drop table movement cascade;
 drop table pieces cascade;
 drop table promotion cascade;
 drop table "startingPositions" cascade;
+drop table "startingPositionsMap" cascade;
 drop table "boundingBox" cascade;
+
+
+
+
+
+
+
+CREATE TABLE users (
+  user_id BIGSERIAL NOT NULL PRIMARY KEY,
+  display_name TEXT NOT NULL,
+  manager_id BIGINT NULL REFERENCES users(user_id)
+);
+CREATE TABLE teams (
+  team_id BIGSERIAL NOT NULL PRIMARY KEY,
+  display_name TEXT NOT NULL
+);
+CREATE TABLE user_teams (
+  user_id BIGINT NOT NULL REFERENCES users,
+  team_id BIGINT NOT NULL REFERENCES teams,
+  PRIMARY KEY(user_id, team_id)
+);
+INSERT INTO users
+  (user_id, display_name, manager_id)
+VALUES
+  (1, 'Forbes', NULL), (2, 'John', NULL), (3, 'Joe', 1);
+INSERT INTO teams
+  (team_id, display_name)
+VALUES
+  (1, 'Awesome Team'), (2, 'Team of One');
+INSERT INTO user_teams
+  (user_id, team_id)
+VALUES
+  (1, 1), (2, 1), (1, 2);
+
+drop table users cascade;
+drop table teams cascade;
+drop table user_teams cascade;
 

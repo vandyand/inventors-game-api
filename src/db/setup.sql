@@ -1,3 +1,5 @@
+
+
 create table boards(
 	id bigserial primary key,
 	name text,
@@ -114,29 +116,28 @@ values
 create table piece_arrangements (
 	id bigserial primary key,
 	arrangement_num integer,
-	piece_arrangement_part_id bigint references piece_arrangement_parts(id),
-	bounding_box_id integer references bounding_box(id)
+	piece_arrangement_part_id bigint references piece_arrangement_parts(id)
 );
-insert into piece_arrangements (arrangement_num, piece_arrangement_part_id, bounding_box_id)
+insert into piece_arrangements (arrangement_num, piece_arrangement_part_id)
 values
-(1, 1, 1),
-(1, 2, 1),
-(1, 3, 1),
-(1, 4, 1),
-(1, 5, 1),
-(1, 6, 1),
-(2, 1, 1),
-(2, 2, 1),
-(2, 3, 1),
-(2, 4, 1),
-(2, 7, 1),
-(2, 8, 1),
-(3, 9, 1),
-(3, 10, 2),
-(4, 10, 2),
-(4, 11, 2),
-(4, 12, 2),
-(4, 13, 2);
+(1, 1),
+(1, 2),
+(1, 3),
+(1, 4),
+(1, 5),
+(1, 6),
+(2, 1),
+(2, 2),
+(2, 3),
+(2, 4),
+(2, 7),
+(2, 8),
+(3, 9),
+(3, 10),
+(4, 10),
+(4, 11),
+(4, 12),
+(4, 13);
 
 
 
@@ -175,14 +176,15 @@ create table game_types (
 	description text,
 	board_id integer references boards(id),
 	game_type_piece_arrangement integer,
+	piece_arrangement_bounding_box integer references bounding_box(id),
 	game_rules_id integer references game_rules(id),
 	info text
 );
-insert into game_types (name,code,board_id,game_type_piece_arrangement,game_rules_id)
+insert into game_types (name,code,board_id,game_type_piece_arrangement,piece_arrangement_bounding_box,game_rules_id)
 values
-	('chess', 'chess', 1, 1, 1),
-	('knight and king mayhem','kn',1,2,2),
-	('king queen rook bishop fun','kqrb',1,3,2);
+	('chess', 'chess', 1, 1, 1, 1),
+	('knight and king mayhem','kn',1,2,2,2),
+	('king queen rook bishop fun','kqrb',1,3,2,2);
 
 
 
@@ -205,13 +207,39 @@ from
 	game_types gt
 	inner join game_type_piece_arrangement gtpa on (gtpa.game_type_id = gt.id)
 	inner join piece_arrangements pa on (gtpa.piece_arrangement_num = pa.arrangement_num)
-	inner join bounding_box bb on (pa.bounding_box_id = bb.id)
 	inner join piece_arrangement_parts pap on (pa.piece_arrangement_part_id = pap.id)
 where
-	code = 'chess'
-	
-	
-	
+	code = 'chess';
+
+CREATE EXTENSION IF NOT EXISTS tablefunc;
+
+
+
+select *
+from 
+game_types gt
+inner join game_type_piece_arrangement gtpa on (gtpa.game_type_id = gt.id)
+inner join 
+(
+
+
+select arrangement_num, jsonb_build_object('piece_code',piece_code, 'locations', locations) as pieces
+--select *
+from piece_arrangements pa
+inner join piece_arrangement_parts pap on (pa.piece_arrangement_part_id = pap.id)
+where arrangement_num = 1
+
+
+) x on (x.arrangement_num = gtpa.piece_arrangement_num)
+
+
+
+
+
+
+select * from game_type_piece_arrangement 
+select * from piece_arrangements 
+
 SELECT
 	gt.id,
 	gt.name,
@@ -224,10 +252,10 @@ SELECT
 					SELECT
 						*
 					FROM
-						game_type_piece_arrangement spm
-						JOIN piece_arrangement_parts sp on (sp.id = spm.piece_arrangement_part_id)
-					WHERE
-						spm.id = gt.id
+						game_type_piece_arrangement gtpa
+						JOIN piece_arrangements pa on (pa.arrangement_num = gtpa.piece_arrangement_num)
+				--	WHERE
+				--		spm.id = gt.id
 				) x
 		),
 		'[]'

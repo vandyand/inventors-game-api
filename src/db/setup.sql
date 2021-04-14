@@ -1,17 +1,27 @@
 
 
+create table grid_types (
+	id bigserial primary key,
+	name text,
+	iuc_notation text
+);
+insert into grid_types(name, iuc_notation)
+values
+('chess grid', 'p4m')
+
 create table boards(
 	id bigserial primary key,
 	name text,
 	description text,
-	grid_type text,
+	grid_type_id integer references grid_types(id),
 	board_shape text,
-	size numeric []
+	size numeric [],
+	rotation numeric
 );
 insert into
-	boards(name, description, grid_type, board_shape, size)
+	boards(name, description, grid_type_id, board_shape, size, rotation)
 values
-('chess','square 8x8 chess board','squares','square','{8,8}');
+('chess','square 8x8 chess board',1,'square','{8,8}',0);
 
 
 
@@ -208,6 +218,7 @@ from
 	inner join game_type_piece_arrangement gtpa on (gtpa.game_type_id = gt.id)
 	inner join piece_arrangements pa on (gtpa.piece_arrangement_num = pa.arrangement_num)
 	inner join piece_arrangement_parts pap on (pa.piece_arrangement_part_id = pap.id)
+	inner join boards b on (b.id = gt.board_id)
 where
 	code = 'chess';
 
@@ -215,22 +226,35 @@ CREATE EXTENSION IF NOT EXISTS tablefunc;
 
 
 
-select *
-from 
-game_types gt
+select gt.id as game_type_id, bb.box as piece_reference_box, b.size as board_size, array_agg(json_build_object('player',player, 'pieces', pieces)) as player_pieces
+
+--select *
+from game_types gt
 inner join game_type_piece_arrangement gtpa on (gtpa.game_type_id = gt.id)
 inner join 
 (
 
-
-select arrangement_num, jsonb_build_object('piece_code',piece_code, 'locations', locations) as pieces
---select *
+select arrangement_num, array_agg(jsonb_build_object('piece_code',piece_code, 'locations', locations)) as pieces
 from piece_arrangements pa
 inner join piece_arrangement_parts pap on (pa.piece_arrangement_part_id = pap.id)
-where arrangement_num = 1
-
+group by pa.arrangement_num
 
 ) x on (x.arrangement_num = gtpa.piece_arrangement_num)
+
+join bounding_box bb on (piece_arrangement_bounding_box = bb.id)
+join boards b on (b.id = gt.board_id)
+where gt.id = 1
+
+group by gt.id, bb.box, b.size
+
+
+
+
+select * from game_types gt
+join boards b on (b.id = gt.board_id)
+
+
+
 
 
 
@@ -278,7 +302,7 @@ from
 	
 	
 select
-	to_jsonb(gt)
+	*
 from
 	game_types gt
 	
@@ -362,7 +386,7 @@ group by
 	game_type_id drop table boards cascade;
 
 
-
+drop table grid_types cascade;
 drop table boards cascade;
 drop table game_rules cascade;
 drop table game_types cascade;

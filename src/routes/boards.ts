@@ -8,8 +8,8 @@ module.exports = router;
 
 router.get("/", async (req, res) => {
   try {
-    const response = await db.query("SELECT * FROM boards");
-    res.send(response);
+    const { rows } = await db.query("SELECT * FROM boards");
+    res.send(rows);
   } catch (e) {
     console.log(e);
   }

@@ -39,17 +39,17 @@ const buildNestedGameTypeQueryById = (id: number) => {
   return buildNestedGameTypeQuery(`where gt.id = ${id}`);
 };
 
-// router.get("/", (req, res) => {
-//   if (req.query.ids) {
-//     db.query(buildGameTypeQuery(`WHERE id in (${req.query.ids})`))
-//       .then((result) => res.send(result.rows))
-//       .catch((err) => console.log(err.message));
-//   } else {
-//     db.query(buildGameTypeQuery())
-//       .then((result) => res.send(result.rows))
-//       .catch((err) => console.log(err.message));
-//   }
-// });
+router.get("/", (req, res) => {
+  if (req.query.ids) {
+    db.query(buildNestedGameTypeQueryById(req.query.ids))
+      .then((result) => res.send(result.rows))
+      .catch((err) => console.log(err.message));
+  } else {
+    db.query(buildNestedGameTypeQuery())
+      .then((result) => res.send(result.rows))
+      .catch((err) => console.log(err.message));
+  }
+});
 
 router.get("/:id", async (req, res) => {
   try {

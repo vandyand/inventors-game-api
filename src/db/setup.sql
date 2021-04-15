@@ -243,7 +243,7 @@ group by pa.arrangement_num
 
 join bounding_box bb on (piece_arrangement_bounding_box = bb.id)
 join boards b on (b.id = gt.board_id)
-where gt.id = 1
+--where gt.id = 1
 
 group by gt.id, bb.box, b.size
 

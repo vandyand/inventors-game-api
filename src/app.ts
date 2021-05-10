@@ -9,6 +9,7 @@ const test = require("./routes/test");
 // Our Express APP config
 const app = express();
 
+app.use(express.json());
 app.use(cors());
 
 app.use("/boards", boards);

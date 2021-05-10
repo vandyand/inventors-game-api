@@ -25,3 +25,19 @@ router.get("/:id", async (req, res) => {
     console.log(e);
   }
 });
+
+router.post("/", async (req, res) => {
+  try {
+    const query = `INSERT INTO boards(name, description, grid_type_id, board_shape, size, rotation) values('${
+      req.body.name || "null"
+    }','${req.body.description || "null"}',${
+      req.body.grid_type_id || "null"
+    },'${req.body.board_shape || "null"}','{${req.body.size || "null"}}',${
+      req.body.rotation || "null"
+    })`;
+    await db.query(query);
+    res.send(req.body);
+  } catch (e) {
+    console.log(e);
+  }
+});

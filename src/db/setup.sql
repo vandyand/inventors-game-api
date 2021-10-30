@@ -170,12 +170,13 @@ values
 
 create table game_rules (
 	id bigserial primary key,
-	win_condition text
+	win_condition text,
+	kill_piece_code text references pieces(code)
 );
-insert into game_rules (win_condition)
+insert into game_rules (win_condition, kill_piece_code)
 values
-('kill piece: k'),
-('annihilation');
+('kill piece', 'k'),
+('annihilation', null);
 
 
 
@@ -186,11 +187,11 @@ create table game_types (
 	description text,
 	board_id integer references boards(id),
 	game_type_piece_arrangement integer,
-	piece_arrangement_bounding_box integer references bounding_box(id),
+	piece_arrangement_bounding_box_id integer references bounding_box(id),
 	game_rules_id integer references game_rules(id),
 	info text
 );
-insert into game_types (name,code,board_id,game_type_piece_arrangement,piece_arrangement_bounding_box,game_rules_id)
+insert into game_types (name,code,board_id,game_type_piece_arrangement,piece_arrangement_bounding_box_id,game_rules_id)
 values
 	('chess', 'chess', 1, 1, 1, 1),
 	('knight and king mayhem','kn',1,2,2,2),
@@ -202,6 +203,15 @@ alter table
 	game_type_piece_arrangement
 add
 	constraint game_type_piece_arrangement_game_types_fkey foreign key (game_type_id) references game_types(id);
+
+
+
+
+
+
+
+--STOP HERE
+
 
 
 
@@ -248,21 +258,14 @@ join boards b on (b.id = gt.board_id)
 group by gt.id, bb.box, b.size
 
 
-
-
 select * from game_types gt
 join boards b on (b.id = gt.board_id)
 
 
 
-
-
-
-
-
-
-select * from game_type_piece_arrangement 
-select * from piece_arrangements 
+select * from game_type_piece_arrangement;
+select * from piece_arrangements;
+select * from piece_arrangement_parts;
 
 SELECT
 	gt.id,
@@ -299,91 +302,34 @@ select
 	jsonb_build_array(gt)
 from
 	game_types gt
-	
-	
+
+
 select
 	*
 from
 	game_types gt
-	
-	
-	
+
+
+
 select
 	array_agg(to_jsonb(spm))
 from
 	game_type_piece_arrangement spm
 where
 	spm.game_type_id = 1
-	
-	
-	
-select
-	game_type_id,
-	array_agg(piece_arrangement_part_id) as sp
-from
-	game_type_piece_arrangement spm
-where
-	game_type_id = 1
-group by
-	game_type_id
-	
-	
-	
-select
-	*
-from
-	game_type_piece_arrangement spm;
 
 
-
-select
-	*
-from
-	piece_arrangement_parts sp;
+	
+select * from boards
 
 
+insert into
+	boards(name, description, grid_type_id, board_shape, size, rotation)
+values
+('chess','square 8x8 chess board',1,'square','{8,8}',0);
 
-select
-	*
-from
-	game_type_piece_arrangement spm
-	join piece_arrangement_parts sp on (spm.piece_arrangement_part_id = sp.id)
-where
-	game_type_id = 1
-	
-	
-	
-select
-	x.game_type_id,
-	array_agg(x.piece_code_spaces) as piece_code_spaces,
-	x.bounding_box_id
-from
-	(
-		select
-			game_type_id,
-			array [unnest(array_agg(to_jsonB(piece_code))),unnest(array_agg(to_jsonb(spaces)))] as piece_code_spaces
-		from
-			game_type_piece_arrangement spm
-			join piece_arrangement_parts sp on (spm.piece_arrangement_part_id = sp.id) --where game_type_id = 1
-		group by
-			game_type_id
-	) x
-group by
-	x.game_type_id
-	
-	
-	
-select
-	game_type_id,
-	array [unnest(array_agg(to_jsonB(piece_code))),unnest(array_agg(to_jsonb(spaces)))] as piece_code_spaces,
-	array_agg(bounding_box_id) as bounding_box_id
-from
-	game_type_piece_arrangement spm
-	join piece_arrangement_parts sp on (spm.piece_arrangement_part_id = sp.id)
-where
-	game_type_id = 1
-group by
-	game_type_id drop table boards cascade;
+
+insert into boards values ('chess2')
 
 
 drop table grid_types cascade;
@@ -397,3 +343,5 @@ drop table piece_arrangement_parts cascade;
 drop table piece_arrangements cascade;
 drop table game_type_piece_arrangement cascade;
 drop table bounding_box cascade;
+
+

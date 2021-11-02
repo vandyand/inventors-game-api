@@ -1,8 +1,8 @@
-const Router = require("express-promise-router");
+import Router from "express-promise-router";
 
 const db = require("../db");
 
-const router = new Router();
+const router = Router();
 
 module.exports = router;
 
